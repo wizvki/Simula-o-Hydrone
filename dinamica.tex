@@ -1,0 +1,185 @@
+\chapter{Dinâmica}
+%\begin{lstlisting}[caption={Proposta},label={codigoArmando},firstnumber=181]
+%\input{din}
+%\end{lstlisting}
+
+%\lstlistoflistings
+
+\section{Função \textit{actuator(this, dwF, dv, dw)}}
+Função que calcula atuação nas hélices, tendo como entrada o objeto definido, e algumas variáveis desse objeto: a velocidade $dwF$ (velocidade angular de altitude calculado), velocidade $dv$ (velocidade linear calculado na função \textit{controllerPos(this, ref)}) e velocidade $dw$ (velocidade angular calculado na função \textit{controllerPos(this, ref)}) 
+
+Aqui (código \ref{lst:wh}) é calculado a velocidade de rotação que permite o veículo permanecer em equilíbrio em relação a altitude (hover) (mais na seção \ref{sec:equil}). 
+
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{actuator(this, dwF, dv, dw)}: variável \textit{wh}},label={lst:wh},firstnumber=185,linerange={5-9}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+
+No trecho a seguir (código \ref{lst:DAr}) define a matriz que indica quais motores serão acionados de acordo com a situação de deslocamento dependendo do condicional, que verifica em qual ambiente que o veículo se encontra. Onde as linhas da matriz indicam os motores (para 0 não aciona, para 1 aciona, e o sinal indica a direção do movimento do veículo), e as colunas os tipos de movimento (em $z$, $xy$, roll, pitch, yaw). 
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{actuator(this, dwF, dv, dw)}: variável $D$ para ambiente aéreo}, label={lst:DAr}, firstnumber=191, linerange={11-22}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+No caso do acionamento no ambiente aéreo atribui-se a matriz a seguir (equação \ref{eq:DAr})
+\begin{equation}
+    D =
+    \begin{bmatrix}
+        1 & 0 & 0 & -1 & 1 \\
+        1 & 0 & 1 & 0 & -1 \\
+        1 & 0 & 0 & 1 & 1 \\
+        1 & 0 & -1 & 0 & -1 
+    \end{bmatrix}
+    \label{eq:DAr}
+\end{equation}
+
+E no código \ref{lst:DAqua} apresenta a a matriz caso o veículo se encontre no meio aquático.
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{actuator(this, dwF, dv, dw)}: variável $D$ para ambiente aquático}, label={lst:DAqua},firstnumber=182,linerange={23-31}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+Enquanto, para o caso do meio subaquático atribui-se a matriz a seguir (equação \ref{eq:DAqua}):
+
+\begin{equation}
+    D =
+    \begin{bmatrix}
+        1 & 0 & 0 & -1 & 0 \\
+        1 & 1 & 0 & 0 & -1 \\
+        1 & 0 & 0 & 1 & 0 \\
+        1 & 1 & 0 & 0 & -1 
+    \end{bmatrix}
+    \label{eq:DAqua}
+\end{equation}
+
+Na variável seguinte (código \ref{lst:w}) é atribuído a $w$ junção de todas as velocidades calculadas ($dv$ e $dw$) junto com as velocidades com ação de controle ($dwF$) e equilíbrio ($wh$) em forma matricial.
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{actuator(this, dwF, dv, dw)}: variável $w$},label={lst:w},firstnumber=182,linerange={34-48}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+E então, é atribuído a variável $wdes$ (código \ref{lst:wdes}) a matriz que contém a velocidade desejada para os motores já indicando quais serão acionados de acordo com movimento ($D$)
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{actuator(this, dwF, dv, dw)}: variável $wdes$},label={lst:wdes},firstnumber=182,linerange={50-53}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+E em seguida (código \ref{lst:updatemot}), é atualizada o estado dos motores usando a função \textit{update(wdes(i), this.dt, this.env)}, no caso,verifica em qual ambiente o veículo se encontra, e atualiza a velocidade desejada.
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{actuator(this, dwF, dv, dw)}: variável $mot$},label={lst:updatemot},firstnumber=182,linerange={55-73}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+
+\section{Função \textit{wh = equilibrium(this)}}
+\label{sec:equil}
+Função que calcula a velocidade de rotação dos motores no ponto de equilíbrio (tipo hover)
+
+No trecho \ref{lst:phithe} é atribuído as orientações atuais do veículo (ângulo $\phi$ e $\theta$) para verificar e corrigir se necessário para manter o veículo próximo da orientação nula nos ângulos $phi$ e $theta$.
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{wh = equilibrium(this)}: variáveis $\phi$ e $\theta$ },label={lst:phithe},firstnumber=182,linerange={79-80}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+Em seguida (código \ref{lst:alpha}) é verificada em qual ambiente o veículo se encontra para determinar o efeito de inclinação desses ângulos.
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{wh = equilibrium(this)}: variável $\alpha$},label={lst:alpha},firstnumber=182,linerange={82-95}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+É definido o termo do efeito da força da gravidade (código \ref{lst:grav}) de acordo com o ambiente. Sendo $\rho$ densidade do ambiente, $Vol$ o volume do veículo, $m$ a massa e $g$ a aceleração da gravidade.
+\begin{equation}
+    g_{term} = |m - \rho Vol| g
+\end{equation}
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{wh = equilibrium(this)}: variável $grav_{term}$},label={lst:grav},firstnumber=182,linerange={97-101}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+Então é definido o ganho do motor calculado na função \textit{getKf(this)} que se encontra em outro arquivo (ver seção \ref{sec:prop}), onde pode ser calculado ou levantadas por ensaios.
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{wh = equilibrium(this)}: variável $k_f$},label={lst:kf},firstnumber=182,linerange={103-119}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+Com todas as variáveis definidas é calculado a variável $wh$ de acordo com o ambiente.
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{wh = equilibrium(this)}: variável },label={lst:wh},firstnumber=182,linerange={121-133}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\section{Função  [at, aa] = getAccel(this, v, q, r)}
+\label{sec:getAccel}
+Nesta função é calculado a aceleração translacional($at$) e rotacional ($aa$) do veículo, tendo como entrada o objeto, a velocidade linear ($v$) e angular ($q$) medido, e a orientação ($r$) do veículo. 
+
+Inicialmente é determinado a densidade do ambiente ($\rho$) pela função \textit{getRho(this)} que se encontra em outro no arquivo $.m$ (ver seção \ref{sec:prop}).
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $\rho$ }, label={lst:rho},firstnumber=182,linerange={139-149}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+Para o cálculo dessa dinâmica é preciso determinar a massa adicional e inércia adicional (código \ref{lst:adicional}), apesar de no meio aéreo seja mínimo. (é considerado a cápsula do veículo na forma esférica), sendo o volume da esfera:
+\begin{equation}
+    Vol = \frac{4}{3} \pi R^3
+\end{equation}
+ onde $R$ é o raio da esfera ($rc$).
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variáveis $adde_{mass}$ e $added_{inertia}$ }, label={lst:adicional},firstnumber=182,linerange={151-154}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $f_1$ }, label={lst:f1},firstnumber=182,linerange={156-162}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $f_2$ }, label={lst:f2},firstnumber=182,linerange={164-166}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $f_3$ }, label={lst:f3},firstnumber=182,linerange={168-170}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $f_4$}, label={lst:f4},firstnumber=182,linerange={172-174}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $f_5$ }, label={lst:f5},firstnumber=182,linerange={176-178}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $a_t$}, label={lst:at},firstnumber=182,linerange={180-182}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variáveis $peso$ e $empuxo$}, label={lst:pesoempuxo},firstnumber=182,linerange={184-189}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $dist$}, label={lst:dist},firstnumber=182,linerange={191-192}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $m_1$ }, label={lst:m1},firstnumber=182,linerange={194-207}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $m_2$ }, label={lst:m2},firstnumber=182,linerange={209-211}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $m_3$ }, label={lst:m3},firstnumber=182,linerange={213-215}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $m_4$ }, label={lst:m4},firstnumber=182,linerange={217-222}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{getAccel(this, v, q, r)}: variável $a_a$ }, label={lst:aa},firstnumber=182,linerange={224-228}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+\iffalse
+\section{Função \textit{dynamics(this)}}
+
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\lstinputlisting[language = Matlab, caption={Parte da função \textit{dynamics(this)}: variáveis $F$ e $M$}, label={lst:FM},firstnumber=182,linerange={233-237}]{codigos/din.m}
+%firstline=37, lastline=45 ou ,linerange={37-45,48-50}
+
+\fi
+
+
+
+\pagebreak
